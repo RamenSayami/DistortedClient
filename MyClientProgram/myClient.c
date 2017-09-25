@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
     fgets(bufferStdin,10000,stdin);
 
     while(1){
+        printf("waiting for input/output");
         if (!feof(stdin)){ // Check if data in stdin? 
             if(write(sockfd,bufferStdin,strlen(bufferStdin))<0){
                          error("ERROR writing to socket ");
@@ -82,6 +83,7 @@ int main(int argc, char *argv[])
             for(int i=0 ; i< sizeof(bufferSocket) ; i++){
                 messageRecieved[recieverCount++]= bufferSocket[i];
             }
+            printf("%s\n", messageRecieved);
         }
     }
     messageRecieved[recieverCount] = '\n';  
