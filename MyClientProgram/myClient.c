@@ -67,6 +67,7 @@ int main(int argc, char *argv[])
     // bufferStdin[i] = 'a';
  //    }
     fgets(bufferStdin,10000,stdin);
+        printf("waiting for input/output");
 
     while(1){
         printf("waiting for input/output");
