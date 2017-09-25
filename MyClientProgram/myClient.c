@@ -14,7 +14,7 @@ void error(const char *msg)
 }
 
 void checkArgumentsPassedCorrectly(int argc, char* command){
-	 if (argc < 3) {  
+     if (argc < 3) {  
        fprintf(stderr,"usage %s hostname port\n", command);
        exit(0);
     }
@@ -22,7 +22,7 @@ void checkArgumentsPassedCorrectly(int argc, char* command){
 }
 
 void checkOpeningSocket(int sockfd){
-	 if (sockfd < 0) 
+     if (sockfd < 0) 
         error("ERROR opening socket");
     return;
 }
@@ -64,27 +64,27 @@ int main(int argc, char *argv[])
     printf("Please enter the message: ");
     bzero(bufferStdin,10001);
  //    for (int i=0; i < 10000; i++){
-	// bufferStdin[i] = 'a';
+    // bufferStdin[i] = 'a';
  //    }
     fgets(bufferStdin,10000,stdin);
-    
-    while(1){
-	    if (!feof(stdin)){ // Check if data in stdin? 
-		    if(write(sockfd,bufferStdin,strlen(bufferStdin))<0){
-		    	         error("ERROR writing to socket ");
-		    	         printf("%s", bufferStdin);
-		    }
-		} 
 
-		if(read(sockfd,bufferSocket,10000)<0){
-	        error("ERROR reading from socket");
-		}else{
-			for(int i=0 ; i< sizeof(bufferSocket) ; i++){
-				messageRecieved[recieverCount++]= bufferSocket[i];
-			}
-		}
+    while(1){
+        if (!feof(stdin)){ // Check if data in stdin? 
+            if(write(sockfd,bufferStdin,strlen(bufferStdin))<0){
+                         error("ERROR writing to socket ");
+                         printf("%s", bufferStdin);
+            }
+        } 
+
+        if(read(sockfd,bufferSocket,10000)<0){
+            error("ERROR reading from socket");
+        }else{
+            for(int i=0 ; i< sizeof(bufferSocket) ; i++){
+                messageRecieved[recieverCount++]= bufferSocket[i];
+            }
+        }
     }
-	
+    messageRecieved[recieverCount] = '\n';  
 
     // n = write(sockfd,bufferStdin,strlen(bufferStdin));
     // if (n < 0) 
