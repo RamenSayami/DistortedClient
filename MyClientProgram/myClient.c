@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     if (n< 0) 
         error("ERROR connecting");
     
-    printf("Please enter the message: ");
+    fprintf("Please enter the message: ");
     bzero(bufferStdin,10001);
  //    for (int i=0; i < 10000; i++){
     // bufferStdin[i] = 'a';
@@ -58,14 +58,13 @@ int main(int argc, char *argv[])
 
     // fgets(bufferStdin,10000,stdin);
     //     printf("waiting for input/output");
-    printf("Waiting for input/socket");
+    fprintf("Waiting for input/socket");
 
     while(1){
-
         if (pollInputs[1].revents & POLLIN){ // Check if data in stdin? 
             if(write(sockfd,bufferStdin,strlen(bufferStdin))<0){
                     error("ERROR writing to socket ");
-                    printf("%s", bufferStdin);
+                    fprintf("%s", bufferStdin);
                     memset(bufferStdin, '\0', 10001);
             }
         } 
@@ -83,7 +82,7 @@ int main(int argc, char *argv[])
         }
     }
     messageRecieved[recieverCount] = '\n';  
-    printf("%s\n", messageRecieved);
+    fprintf("%s\n", messageRecieved);
 
     // n = write(sockfd,bufferStdin,strlen(bufferStdin));
     // if (n < 0) 
@@ -92,7 +91,7 @@ int main(int argc, char *argv[])
     // n = read(sockfd,buffer,10000);
     // if (n < 0) 
     //      error("ERROR reading from socket");
-    printf("Message recieved: %s\n",messageRecieved);
+    fprintf("Message recieved: %s\n",messageRecieved);
     close(sockfd);
     return 0;
 }
