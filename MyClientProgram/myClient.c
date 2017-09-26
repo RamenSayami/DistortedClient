@@ -7,25 +7,11 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
-void error(const char *msg)
-{
-    perror(msg);
-    exit(0);
-}
+void error(const char*);
 
-void checkArgumentsPassedCorrectly(int argc, char* command){
-     if (argc < 3) {  
-       fprintf(stderr,"usage %s hostname port\n", command);
-       exit(0);
-    }
-    return;
-}
+void checkArgumentsPassedCorrectly(int, char*);
 
-void checkOpeningSocket(int sockfd){
-     if (sockfd < 0) 
-        error("ERROR opening socket");
-    return;
-}
+void checkOpeningSocket(int);
 
 int main(int argc, char *argv[])
 {
@@ -99,4 +85,24 @@ int main(int argc, char *argv[])
     printf("Message recieved: %s\n",messageRecieved);
     close(sockfd);
     return 0;
+}
+
+void checkArgumentsPassedCorrectly(int argc, char* command){
+     if (argc < 3) {  
+       fprintf(stderr,"usage %s hostname port\n", command);
+       exit(0);
+    }
+    return;
+}
+
+void error(const char *msg)
+{
+    perror(msg);
+    exit(0);
+}
+
+void checkOpeningSocket(int sockfd){
+     if (sockfd < 0) 
+        error("ERROR opening socket");
+    return;
 }
