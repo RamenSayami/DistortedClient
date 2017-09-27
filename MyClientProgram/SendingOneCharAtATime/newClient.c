@@ -60,7 +60,7 @@ void buildPacket(int clientId, int seqNum, int comSignal, char msg){
         packet[i++] = clientId+48;
         packet[i++] = ':';
         intToString(seqNum);
-        for(j = strlen(number)-2; j>=0 ; j--){
+        for(int j = strlen(number)-2; j>=0 ; j--){
             packet[i++] = number[j];
 
         }
