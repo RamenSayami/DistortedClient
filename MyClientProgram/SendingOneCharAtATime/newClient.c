@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h> 
+#include <math.h>
 
 #define SEND 49
 #define ACK1 50
@@ -15,24 +16,63 @@
 
 #define THIS_CLIENT 0 // Change number for different instances please!
 char packet[10];
+char number[4];
+
+// char * convertNumberIntoArray(unsigned int number) {
+//     unsigned int length = (int)(log10((float)number)) + 1;
+//     char * arr = (char *) malloc(length * sizeof(char)), * curr = arr;
+//     do {
+//         *curr++ = number % 10;
+//         number /= 10;
+//     } while (number != 0);
+//     return arr;
+// }
+
+void intToString(int num){
+    bzero(number,4);
+    if(num == 0){
+        number[0] = '0';
+        number[1] = '\n';
+        return;
+    }
+
+    if(num > 0 & num <=9){
+        number[0] = num+'0';
+        number[1] = '\n';
+        return;
+    }
+
+    int n;
+    int i=0;
+    do{
+        n = num %10;
+        number[i++] = n + '0';
+        num = num /10;
+    }while(num>0);
+    number[i] = '\n';
+    return;
+}
+
 void buildPacket(int clientId, int seqNum, int comSignal, char msg){
         // char packet[10];
         bzero(packet, 10);
         int i=0;
         packet[i++] = clientId+48;
         packet[i++] = ':';
-        while(seqNum%10){
-            int n = seqNum % 10;
-            packet[i++] = 48+n;
-            seqNum = seqNum/10;
+        intToString(seqNum);
+        for(j = strlen(number)-2; j>=0 ; j--){
+            packet[i++] = number[j];
+
         }
+
         packet[i++] = ':';
         packet[i++] = comSignal;
         packet[i++] = ':';
         packet[i++] = msg;
         packet[i++] = '\n';
-        fprintf(stderr,"%s\n", packet);
+        fprintf(stderr,"%s", packet);
 }  
+
 
 void error(const char *msg)
 {
