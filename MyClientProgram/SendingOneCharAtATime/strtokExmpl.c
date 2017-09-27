@@ -1,10 +1,11 @@
 /* strtok example */
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 int main ()
 {
-  char str1[10] ="0:10:1:l\n";
+  char str1[10] ="3:2:X:l\n";
   char str[10];
   bzero(str, 10);
   char * pch;
@@ -15,7 +16,7 @@ int main ()
   pch = strtok (str,":");
   while (pch != NULL)
   {
-    printf ("%s\n",pch);
+    printf ("%d\n",atoi(pch));
     pch = strtok (NULL, ":");
   }
   return 0;

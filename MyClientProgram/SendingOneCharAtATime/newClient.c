@@ -14,7 +14,7 @@
 #define ACK2 52
 #define TERMINATE 53
 
-#define THIS_CLIENT 0 // Change number for different instances please!
+#define THIS_CLIENT 3 // Change number for different instances please! 3 - 8 will be better
 char packet[10];
 char number[4];
 
@@ -37,7 +37,7 @@ struct MessageDetails
     int count2;
     char msg3;
     int count3;
-}recvdPackages;
+}recvdPackages[10001];
 
 
 void intToString(int num){
@@ -99,9 +99,28 @@ void transmitData(int sockfd, char *buffer){
         
 }
 
+char messageToBeDisplayed[10001];
+int judge(struct MessageDetails judgePackage){
+    if(judgePackage.count1 == 3){
+        messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg1;
+        return TERMINATE;
+    }
+    if(judgePackage.count2 == 3){
+        messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg2;
+        return TERMINATE;
+    }
+    if(judgePackage.count2 == 3){
+        messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg3;
+        return TERMINATE;
+    }
+    return SEND_AGAIN;
+}
 void splitData(char* socketBuffer){
     char * pch;
-    pch = strtok (socketBuffer,":");
+    char str[10];
+    strncpy(str, socketBuffer, (strlen(socketBuffer)-1));
+
+    pch = strtok (str,":");
     int serial = 0;
     while (pch != NULL)
     {
@@ -121,9 +140,18 @@ void splitData(char* socketBuffer){
             currentPackage.msg= atoi(pch);
             serial++;
         } 
-        printf ("%s\n",pch);
+        // printf ("%s\n",pch);
         pch = strtok (NULL, ":");
     }
+}
+int countSeperators(char* recievedPacket){
+    int i=0;
+    int count = 0;
+    while(recievedPacket[i] != '\n'){
+        if(recievedPacket[i] == ':')
+            count++;
+    }
+    return count;
 }
 int main(int argc, char *argv[])
 {
@@ -162,6 +190,7 @@ int main(int argc, char *argv[])
     }
     fgets(inputBuffer,10000,stdin);
     int i =0;
+    bzero(recvdPackages, sizeof(struct MessageDetails)*10001);
     // Sliding window apply garnu parcha..
     // window size 5 jati..
     // dont send 6th character unless 1st is double acked
@@ -170,15 +199,55 @@ int main(int argc, char *argv[])
     int sendCompletionFlag = 1,recvCompletionFlag = 1, sendingCharAt=0;
     while(sendCompletionFlag && recvCompletionFlag){
         if(inputBuffer[sendingCharAt] != '\n'){
-            buildPacket(THIS_CLIENT, sendingCharAt, SEND, inputBuffer[i]);
+            buildPacket(THIS_CLIENT, sendingCharAt, SEND, inputBuffer[sendingCharAt]);
             transmitData(sockfd, packet);
         }else{
             buildPacket(THIS_CLIENT, sendingCharAt, TERMINATE, inputBuffer[0]);
             sendCompletionFlag =0;
         }
         if(read(sockfd,socketBuffer,10000)){
-            splitData(socketBuffer);
+            if(countSeperators(socketBuffer) == 3){
+                splitData(socketBuffer);    
+                if(currentPackage.ackSignals == TERMINATE){
+                    recvCompletionFlag = 0;
+                }
+                if(currentPackage.clientId == THIS_CLIENT){ //Handle replies recieved of packages sent, ie. if ack1 then send again.
+                    //send again if need be
+                    if(currentPackage.ackSignals == ACK1){
+                        buildPacket(THIS_CLIENT, sendingCharAt, SEND_AGAIN, inputBuffer[i]);
+                        transmitData(sockfd, packet);
+                    }
+                    if(currentPackage.ackSignals == ACK2){
+                        sendingCharAt++;
+                    }
+                }
+                else{
+                    recvdPackages[currentPackage.seqNum].clientId = currentPackage.clientId;
+                    recvdPackages[currentPackage.seqNum].seqNum = currentPackage.seqNum;
+                    recvdPackages[currentPackage.seqNum].ackSignals = currentPackage.ackSignals;
+                    if(recvdPackages[currentPackage.seqNum].msg1 = '\0'){
+                        recvdPackages[currentPackage.seqNum].msg1 = currentPackage.msg; 
+                        recvdPackages[currentPackage.seqNum].count1++;
+                    }else if(recvdPackages[currentPackage.seqNum].msg1 = currentPackage.msg){
+                        recvdPackages[currentPackage.seqNum].count1++;
+                    }else if(recvdPackages[currentPackage.seqNum].msg2 = '\0'){
+                        recvdPackages[currentPackage.seqNum].msg2 = currentPackage.msg; 
+                        recvdPackages[currentPackage.seqNum].count2++;
+                    }else if(recvdPackages[currentPackage.seqNum].msg2 = currentPackage.msg){
+                        recvdPackages[currentPackage.seqNum].count2++;
+                    }else if(recvdPackages[currentPackage.seqNum].msg3 = '\0'){
+                        recvdPackages[currentPackage.seqNum].msg3 = currentPackage.msg; 
+                        recvdPackages[currentPackage.seqNum].count3++;
+                    }else if(recvdPackages[currentPackage.seqNum].msg3 = currentPackage.msg){
+                        recvdPackages[currentPackage.seqNum].count3++;
+                    }
+                    if(judge(recvdPackages[currentPackage.seqNum])==TERMINATE){
 
+                    }
+                    //save package,
+                }
+
+            }
         }    
     }
       
