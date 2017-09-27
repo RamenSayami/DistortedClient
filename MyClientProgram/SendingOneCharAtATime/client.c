@@ -7,11 +7,12 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
-#define SENDING 1;
-#define ACK1 2;
-#define ACK2 3;
-#define SENDING_AGAIN 4;
-#define TERMINATE 5;
+#define SENDING 49;
+#define ACK1 50;
+#define SEND_AGAIN 51;
+#define ACK2 52;
+#define SENDING_AGAIN 53;
+#define TERMINATE 54;
 
 void error(const char *msg)
 {
@@ -60,6 +61,12 @@ int main(int argc, char *argv[])
     }
     fgets(buffer,10000,stdin);
     int i =0;
+    // Sliding window apply garnu parcha..
+    // window size 5 jati..
+    // dont send 6th character unless 1st is double acked
+    // keep resending after some milisecond.
+    // use struct? as a class? garo huncha hola ra?
+
     while(buffer[i] != '\n'){
         char toSendBuffer[10];
         bzero(toSendBuffer, 10);
