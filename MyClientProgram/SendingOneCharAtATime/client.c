@@ -61,6 +61,10 @@ int main(int argc, char *argv[])
             transmitData(sockfd, toSendBuffer);
         i++;
     }
+        char toSendBuffer[10];
+        bzero(toSendBuffer, 10);
+        toSendBuffer[0] = '\n';
+            transmitData(sockfd, toSendBuffer);
 
     // n = write(sockfd,buffer,strlen(buffer));
     // if (n < 0) 
