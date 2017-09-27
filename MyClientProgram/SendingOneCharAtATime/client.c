@@ -7,12 +7,13 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
-#define SENDING 49;
+#define SEND 49;
 #define ACK1 50;
 #define SEND_AGAIN 51;
 #define ACK2 52;
-#define SENDING_AGAIN 53;
-#define TERMINATE 54;
+#define TERMINATE 53;
+
+#define THIS_CLIENT 0; // Change number for different instances please!
 
 void error(const char *msg)
 {
@@ -26,6 +27,24 @@ void transmitData(int sockfd, char *buffer){
         error("ERROR writing to socket");
         
 }
+
+struct MessageDetails
+{
+    int seqNo;
+    char correctChar;
+    char recievedMessage1[10];
+    char recievedMessage2[10];
+    int commSignal;
+
+};
+char bufferRecv[10];
+char toSendBuffer[10];
+
+char actualMessageDecoded[1000];
+
+
+MessageDetails messageArray[1000];
+
 int main(int argc, char *argv[])
 {
     int sockfd, portno, n;
@@ -60,40 +79,53 @@ int main(int argc, char *argv[])
 	buffer[i] = 'a';
     }
     fgets(buffer,10000,stdin);
-    int i =0;
     // Sliding window apply garnu parcha..
     // window size 5 jati..
     // dont send 6th character unless 1st is double acked
     // keep resending after some milisecond.
     // use struct? as a class? garo huncha hola ra?
 
-    while(buffer[i] != '\n'){
-        char toSendBuffer[10];
-        bzero(toSendBuffer, 10);
-        toSendBuffer[0] = 48+i;
-        toSendBuffer[1] = ':';
-        toSendBuffer[2] = SENDING;
-        toSendBuffer[3] = ':';
-        toSendBuffer[4] = buffer[i];
-        toSendBuffer[5] = '\n';
-            transmitData(sockfd, toSendBuffer);
-        i++;
-    }
-        // char toSendBuffer[10];
-        // bzero(toSendBuffer, 10);
-        // toSendBuffer[0] = '\n';
-        //     transmitData(sockfd, toSendBuffer);
-
-    // n = write(sockfd,buffer,strlen(buffer));
-    // if (n < 0) 
-    //      error("ERROR writing to socket");
+    int sendingCounter =0;
     while(1){
-        bzero(buffer,10001);
-        n = read(sockfd,buffer,10000);
-        if (n < 0) 
-            error("ERROR reading from socket");
-        printf("%s",buffer);    
+        for(int i=0+sendingCounter; i<5+sendingCounter; i++){
+            bzero(toSendBuffer, 10);
+                toSendBuffer[0] = 48+THIS_CLIENT;
+                toSendBuffer[1] = ":";
+                toSendBuffer[2] = itoa(i);
+                toSendBuffer[3] = ':';
+                toSendBuffer[4] = SENDING;
+                toSendBuffer[5] = ':';
+                toSendBuffer[6] = buffer[i];
+                toSendBuffer[7] = '\n';
+            transmitData(sockfd, toSendBuffer);
+        }
+
+        while(read(sockfd,bufferRecv,10000)){
+            if(bufferRecv[0] == THIS_CLIENT & bufferRecv[2]>48){
+                if(bufferRecv[4] == ACK1){
+                    bzero(toSendBuffer, 10);
+                        toSendBuffer[0] = 48+THIS_CLIENT;
+                        toSendBuffer[1] = ":";
+                        toSendBuffer[2] = 48+bufferRecv[];
+                        toSendBuffer[3] = ':';
+                        toSendBuffer[4] = SENDING;
+                        toSendBuffer[5] = ':';
+                        toSendBuffer[6] = buffer[i];
+                        toSendBuffer[7] = '\n';
+                }
+            }
+        }
+            
+             
+            
+        }
     }
+    // while(1){
+    //     bzero(buffer,10001);
+    //     n = read(sockfd,buffer,10000);
+        
+    //     printf("%s",buffer);    
+    // }
     
     close(sockfd);
     return 0;
