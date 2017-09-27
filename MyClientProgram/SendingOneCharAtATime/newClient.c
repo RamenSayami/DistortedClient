@@ -18,15 +18,18 @@
 char packet[10];
 char number[4];
 
-// char * convertNumberIntoArray(unsigned int number) {
-//     unsigned int length = (int)(log10((float)number)) + 1;
-//     char * arr = (char *) malloc(length * sizeof(char)), * curr = arr;
-//     do {
-//         *curr++ = number % 10;
-//         number /= 10;
-//     } while (number != 0);
-//     return arr;
-// }
+struct CurrentPackage
+{
+    int clientId;
+    int seqNum;
+    int ackSignals;
+    char msg1;
+    int count1 = 0;
+    char msg2;
+    int count2 = 0;
+    char msg3;
+    int count3 = 0;
+}currentPackage;
 
 void intToString(int num){
     bzero(number,4);
@@ -70,7 +73,7 @@ void buildPacket(int clientId, int seqNum, int comSignal, char msg){
         packet[i++] = ':';
         packet[i++] = msg;
         packet[i++] = '\n';
-        fprintf(stderr,"%s", packet);
+        // fprintf(stderr,"%s", packet);
 }  
 
 
@@ -86,13 +89,42 @@ void transmitData(int sockfd, char *buffer){
         error("ERROR writing to socket");
         
 }
+
+void splitData(char* socketBuffer){
+    char * pch;
+    pch = strtok (str,":");
+    int serial = 0;
+    while (pch != NULL)
+    {
+        if(serial == 0){
+            currentPackage.clientId= atoi(pch);
+            serial++;
+        }   
+        if(serial == 1){
+            currentPackage.seqNum = atoi(pch);
+            serial++;
+        }
+        if(serial == 2){
+            currentPackage.ackSignals= atoi(pch);
+            serial++;
+        } 
+        if(serial == 3){
+            currentPackage.msg= atoi(pch);
+            serial++;
+        } 
+        printf ("%s\n",pch);
+        pch = strtok (NULL, ":");
+    }
+}
 int main(int argc, char *argv[])
 {
     int sockfd, portno, n;
     struct sockaddr_in serv_addr;
     struct hostent *server;
 
-    char buffer[10001];
+    char inputBuffer[10001];
+    char socketBuffer[10001];
+
     if (argc < 3) {
        fprintf(stderr,"usage %s hostname port\n", argv[0]);
        exit(0);
@@ -115,39 +147,32 @@ int main(int argc, char *argv[])
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
         error("ERROR connecting");
     printf("Please enter the message: ");
-    bzero(buffer,10001);
+    bzero(inputBuffer,10001);
     for (int i=0; i < 10000; i++){
-	buffer[i] = 'a';
+	inputBuffer[i] = 'a';
     }
-    fgets(buffer,10000,stdin);
+    fgets(inputBuffer,10000,stdin);
     int i =0;
     // Sliding window apply garnu parcha..
     // window size 5 jati..
     // dont send 6th character unless 1st is double acked
     // keep resending after some milisecond.
     // use struct? as a class? garo huncha hola ra?
-
-    while(buffer[i] != '\n'){
-        buildPacket(THIS_CLIENT, i, SEND, buffer[i]);
-        // char toSendBuffer[10];
-        // bzero(toSendBuffer, 10);
-        // toSendBuffer[0] = 48+i;
-        // toSendBuffer[1] = ':';
-        // toSendBuffer[2] = SENDING;
-        // toSendBuffer[3] = ':';
-        // toSendBuffer[4] = buffer[i];
-        // toSendBuffer[5] = '\n';
+    int sendCompletionFlag = 1,recvCompletionFlag = 1, sendingCharAt=0;
+    while(totalCompletionFlag && recvCompletionFlag){
+        if(inputBuffer[sendingCharAt] != '\n'){
+            buildPacket(THIS_CLIENT, sendingCharAt, SEND, inputBuffer[i]);
             transmitData(sockfd, packet);
-        i++;
+        }else{
+            buildPacket(THIS_CLIENT, sendingCharAt, TERMINATE, inputBuffer[0]);
+            sendCompletionFlag =0;
+        }
+        if(read(sockfd,socketBuffer,10000)){
+            splitData(socketBuffer);
+            
+        }    
     }
-        // char toSendBuffer[10];
-        // bzero(toSendBuffer, 10);
-        // toSendBuffer[0] = '\n';
-        //     transmitData(sockfd, toSendBuffer);
-
-    // n = write(sockfd,buffer,strlen(buffer));
-    // if (n < 0) 
-    //      error("ERROR writing to socket");
+      
     while(1){
         bzero(buffer,10001);
         n = read(sockfd,buffer,10000);
