@@ -7,12 +7,12 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
-#define SENDING 49;
-#define ACK1 50;
-#define SEND_AGAIN 51;
-#define ACK2 52;
-#define SENDING_AGAIN 53;
-#define TERMINATE 54;
+#define SENDING 49
+#define ACK1 50
+#define SEND_AGAIN 51
+#define ACK2 52
+#define SENDING_AGAIN 53
+#define TERMINATE 54
 
 void error(const char *msg)
 {
@@ -26,12 +26,30 @@ void transmitData(int sockfd, char *buffer){
         error("ERROR writing to socket");
         
 }
+
+char* intToString(int number){
+    char string[5];
+    int flag =1;
+    bzero(string, 5);
+    while(flag){
+        int toConvert = number %10;
+        char charNum[1];
+        charNum[0] = 48+toConvert;
+        strcat(string, charNum);
+        if(number/10 == 0){
+            flag = -1;
+        }else{
+            number = number/10;
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     int sockfd, portno, n;
     struct sockaddr_in serv_addr;
     struct hostent *server;
-
+    char *helpingString[100];
     char buffer[10001];
     if (argc < 3) {
        fprintf(stderr,"usage %s hostname port\n", argv[0]);
@@ -70,12 +88,24 @@ int main(int argc, char *argv[])
     while(buffer[i] != '\n'){
         char toSendBuffer[10];
         bzero(toSendBuffer, 10);
-        toSendBuffer[0] = 48+i;
-        toSendBuffer[1] = ':';
-        toSendBuffer[2] = SENDING;
-        toSendBuffer[3] = ':';
-        toSendBuffer[4] = buffer[i];
-        toSendBuffer[5] = '\n';
+        bzero(helpingString, 100);
+        // strcpy(helpingString, intToString(48+i));
+            strcpy(toSendBuffer, intToString(i));
+            strcat(toSendBuffer, ":");
+        bzero(helpingString, 100);
+        // helpingString = itoa(SENDING);
+            strcat(toSendBuffer, intToString(SENDING));
+            strcat(toSendBuffer, ":");
+        char ch[1];
+        ch[0] = buffer[i];
+            strcat(toSendBuffer, ch);
+            // strcat(toSendBuffer, '\n');
+
+            // toSendBuffer[1] = ':';
+            // toSendBuffer[2] = SENDING;
+            // toSendBuffer[3] = ':';
+            // toSendBuffer[4] = buffer[i];
+            // toSendBuffer[5] = '\n';
             transmitData(sockfd, toSendBuffer);
         i++;
     }
