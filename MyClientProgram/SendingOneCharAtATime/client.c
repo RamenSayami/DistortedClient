@@ -58,22 +58,26 @@ int main(int argc, char *argv[])
         char toSendBuffer[10];
         bzero(toSendBuffer, 10);
         toSendBuffer[0] = buffer[i];
+        toSendBuffer[1] = '\n';
             transmitData(sockfd, toSendBuffer);
         i++;
     }
-        char toSendBuffer[10];
-        bzero(toSendBuffer, 10);
-        toSendBuffer[0] = '\n';
-            transmitData(sockfd, toSendBuffer);
+        // char toSendBuffer[10];
+        // bzero(toSendBuffer, 10);
+        // toSendBuffer[0] = '\n';
+        //     transmitData(sockfd, toSendBuffer);
 
     // n = write(sockfd,buffer,strlen(buffer));
     // if (n < 0) 
     //      error("ERROR writing to socket");
-    bzero(buffer,10001);
-    n = read(sockfd,buffer,10000);
-    if (n < 0) 
-         error("ERROR reading from socket");
-    printf("%s\n",buffer);
+    while(1){
+        bzero(buffer,10001);
+        n = read(sockfd,buffer,10000);
+        if (n < 0) 
+            error("ERROR reading from socket");
+        printf("%s",buffer);    
+    }
+    
     close(sockfd);
     return 0;
 }
