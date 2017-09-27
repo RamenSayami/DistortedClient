@@ -7,6 +7,12 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
+#define SENDING 1;
+#define ACK1 2;
+#define ACK2 3;
+#define SENDING_AGAIN 4;
+#define TERMINATE 5;
+
 void error(const char *msg)
 {
     perror(msg);
@@ -57,8 +63,12 @@ int main(int argc, char *argv[])
     while(buffer[i] != '\n'){
         char toSendBuffer[10];
         bzero(toSendBuffer, 10);
-        toSendBuffer[0] = buffer[i];
-        toSendBuffer[1] = '\n';
+        toSendBuffer[0] = 48+i;
+        toSendBuffer[1] = ':';
+        toSendBuffer[2] = SENDING;
+        toSendBuffer[3] = ':';
+        toSendBuffer[4] = buffer[i];
+        toSendBuffer[5] = '\n';
             transmitData(sockfd, toSendBuffer);
         i++;
     }
