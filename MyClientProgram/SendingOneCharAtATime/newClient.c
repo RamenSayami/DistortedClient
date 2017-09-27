@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
                 if(currentPackage.clientId == THIS_CLIENT){ //Handle replies recieved of packages sent, ie. if ack1 then send again.
                     //send again if need be
                     if(currentPackage.ackSignals == ACK1){
-                        buildPacket(THIS_CLIENT, sendingCharAt, SEND_AGAIN, inputBuffer[i]);
+                        buildPacket(THIS_CLIENT, sendingCharAt, SEND_AGAIN, inputBuffer[sendingCharAt]);
                         transmitData(sockfd, packet);
                     }
                     if(currentPackage.ackSignals == ACK2){
@@ -242,7 +242,11 @@ int main(int argc, char *argv[])
                         recvdPackages[currentPackage.seqNum].count3++;
                     }
                     if(judge(recvdPackages[currentPackage.seqNum])==TERMINATE){
-
+                        buildPacket(THIS_CLIENT, sendingCharAt, ACK2, inputBuffer[sendingCharAt]);
+                        transmitData(sockfd, packet);
+                    }else if(judge(recvdPackages[currentPackage.seqNum])== SEND_AGAIN){
+                        buildPacket(THIS_CLIENT, sendingCharAt, ACK1, inputBuffer[sendingCharAt]);
+                        transmitData(sockfd, packet);
                     }
                     //save package,
                 }
