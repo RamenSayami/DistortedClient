@@ -7,13 +7,15 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
-#define SEND 49;
-#define ACK1 50;
-#define SEND_AGAIN 51;
-#define ACK2 52;
-#define TERMINATE 53;
+#define SEND 49
+#define ACK1 50
+#define SEND_AGAIN 51
+#define ACK2 52
+#define TERMINATE 53
 
-#define THIS_CLIENT 0; // Change number for different instances please!
+#define THIS_CLIENT 0 // Change number for different instances please!
+
+char packet[10];
 
 void error(const char *msg)
 {
@@ -27,6 +29,23 @@ void transmitData(int sockfd, char *buffer){
         error("ERROR writing to socket");
         
 }
+void buildPacket(int clientId, int seqNum, int comSignal, char msg){
+        // char packet[10];
+        bzero(packet, 10);
+        int i=0;
+        packet[i++] = clientId;
+        packet[i++] = ':';
+        while(seqNum%10){
+            int n = seqNum % 10;
+            packet[i++] = 48+n;
+            seqNum = seqNum/10;
+        }
+        packet[i++] = ':';
+        packet[i++] = comSignal +48;
+        packet[i++] = ':';
+        packet[i++] = msg;
+        packet[i++] = '\n';
+}  
 
 struct MessageDetails
 {
@@ -36,14 +55,13 @@ struct MessageDetails
     char recievedMessage2[10];
     int commSignal;
 
-};
+} messageArray[1000];
 char bufferRecv[10];
-char toSendBuffer[10];
 
 char actualMessageDecoded[1000];
 
 
-MessageDetails messageArray[1000];
+// MessageDetails messageArray[1000];
 
 int main(int argc, char *argv[])
 {
@@ -88,46 +106,40 @@ int main(int argc, char *argv[])
     int sendingCounter =0;
     while(1){
         for(int i=0+sendingCounter; i<5+sendingCounter; i++){
-            bzero(toSendBuffer, 10);
-                toSendBuffer[0] = 48+THIS_CLIENT;
-                toSendBuffer[1] = ":";
-                toSendBuffer[2] = itoa(i);
-                toSendBuffer[3] = ':';
-                toSendBuffer[4] = SENDING;
-                toSendBuffer[5] = ':';
-                toSendBuffer[6] = buffer[i];
-                toSendBuffer[7] = '\n';
-            transmitData(sockfd, toSendBuffer);
+            // bzero(toSendBuffer, 10);
+            buildPacket(THIS_CLIENT, i, SEND, buffer[i]);
+            transmitData(sockfd, packet);
         }
 
-        while(read(sockfd,bufferRecv,10000)){
-            if(bufferRecv[0] == THIS_CLIENT & bufferRecv[2]>48){
-                if(bufferRecv[4] == ACK1){
-                    bzero(toSendBuffer, 10);
-                        toSendBuffer[0] = 48+THIS_CLIENT;
-                        toSendBuffer[1] = ":";
-                        toSendBuffer[2] = 48+bufferRecv[];
-                        toSendBuffer[3] = ':';
-                        toSendBuffer[4] = SENDING;
-                        toSendBuffer[5] = ':';
-                        toSendBuffer[6] = buffer[i];
-                        toSendBuffer[7] = '\n';
-                }
-            }
-        }
+        // while(read(sockfd,bufferRecv,10000)){
+        //     if(bufferRecv[0] == THIS_CLIENT & bufferRecv[2]>48){
+        //         if(bufferRecv[4] == ACK1){
+        //             bzero(toSendBuffer, 10);
+        //                 toSendBuffer[0] = 48+THIS_CLIENT;
+        //                 toSendBuffer[1] = ":";
+        //                 toSendBuffer[2] = 48+bufferRecv[];
+        //                 toSendBuffer[3] = ':';
+        //                 toSendBuffer[4] = SEND;
+        //                 toSendBuffer[5] = ':';
+        //                 toSendBuffer[6] = buffer[i];
+        //                 toSendBuffer[7] = '\n';
+        //         }
+        //     }
+        // }
             
              
             
-        }
+        // }
     }
-    // while(1){
-    //     bzero(buffer,10001);
-    //     n = read(sockfd,buffer,10000);
-        
-    //     printf("%s",buffer);    
-    // }
+    while(1){
+        bzero(buffer,10001);
+        n = read(sockfd,buffer,10000);
+        printf("%s",buffer);    
+    }
     
     close(sockfd);
     return 0;
 }
 
+
+                
