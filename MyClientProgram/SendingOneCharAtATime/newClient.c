@@ -23,13 +23,22 @@ struct CurrentPackage
     int clientId;
     int seqNum;
     int ackSignals;
-    char msg1;
-    int count1 = 0;
-    char msg2;
-    int count2 = 0;
-    char msg3;
-    int count3 = 0;
+    char msg;
 }currentPackage;
+
+struct MessageDetails
+{
+    int clientId;
+    int seqNum;
+    int ackSignals;
+    char msg1;
+    int count1;
+    char msg2;
+    int count2;
+    char msg3;
+    int count3;
+}recvdPackages;
+
 
 void intToString(int num){
     bzero(number,4);
@@ -92,7 +101,7 @@ void transmitData(int sockfd, char *buffer){
 
 void splitData(char* socketBuffer){
     char * pch;
-    pch = strtok (str,":");
+    pch = strtok (socketBuffer,":");
     int serial = 0;
     while (pch != NULL)
     {
@@ -159,7 +168,7 @@ int main(int argc, char *argv[])
     // keep resending after some milisecond.
     // use struct? as a class? garo huncha hola ra?
     int sendCompletionFlag = 1,recvCompletionFlag = 1, sendingCharAt=0;
-    while(totalCompletionFlag && recvCompletionFlag){
+    while(sendCompletionFlag && recvCompletionFlag){
         if(inputBuffer[sendingCharAt] != '\n'){
             buildPacket(THIS_CLIENT, sendingCharAt, SEND, inputBuffer[i]);
             transmitData(sockfd, packet);
@@ -169,17 +178,17 @@ int main(int argc, char *argv[])
         }
         if(read(sockfd,socketBuffer,10000)){
             splitData(socketBuffer);
-            
+
         }    
     }
       
-    while(1){
-        bzero(buffer,10001);
-        n = read(sockfd,buffer,10000);
-        if (n < 0) 
-            error("ERROR reading from socket");
-        printf("%s",buffer);    
-    }
+    // while(1){
+    //     bzero(buffer,10001);
+    //     n = read(sockfd,buffer,10000);
+    //     if (n < 0) 
+    //         error("ERROR reading from socket");
+    //     printf("%s",buffer);    
+    // }
     
     close(sockfd);
     return 0;
