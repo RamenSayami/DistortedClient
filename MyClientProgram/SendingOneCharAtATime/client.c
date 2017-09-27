@@ -104,12 +104,19 @@ int main(int argc, char *argv[])
     // use struct? as a class? garo huncha hola ra?
 
     int sendingCounter =0;
-    while(1){
-        for(int i=0+sendingCounter; i<5+sendingCounter; i++){
+    int flag = 1;
+    int i = 0;
+    while(flag){
+        // for(int i=0+sendingCounter; i<5+sendingCounter; i++){
             // bzero(toSendBuffer, 10);
-            buildPacket(THIS_CLIENT, i, SEND, buffer[i]);
-            transmitData(sockfd, packet);
-        }
+            if(buffer[i] == '\n')
+                flag = -1;
+            else{
+                buildPacket(THIS_CLIENT, i, SEND, buffer[i]);
+                transmitData(sockfd, packet);    
+            }
+            
+        // }
 
         // while(read(sockfd,bufferRecv,10000)){
         //     if(bufferRecv[0] == THIS_CLIENT & bufferRecv[2]>48){
