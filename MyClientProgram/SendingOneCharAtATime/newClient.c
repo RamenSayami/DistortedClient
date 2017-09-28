@@ -8,15 +8,17 @@
 #include <netdb.h> 
 #include <math.h>
 
-#define SEND 49
-#define ACK1 50
-#define SEND_AGAIN 51
-#define ACK2 52
-#define TERMINATE 53
+#define SEND 49         //signal while sending data packet for first time
+#define ACK1 50         //signal when reciver recieves message
+#define SEND_AGAIN 51   //signal when reciever wants the packet again
+#define ACK2 52         //signal when reciever confirms the packet data to be correct
+#define TERMINATE 53    //signal to terminate the communication from senders's end if all packets are gone through.
 
 #define THIS_CLIENT 3 // Change number for different instances please! 3 - 8 will be better
 char packet[10];
 char number[4];
+
+int lastSendingSignal = 54;
 
 struct CurrentPackage
 {
@@ -140,7 +142,7 @@ void splitData(char* socketBuffer){
             currentPackage.msg = pch[0];
             serial++;
         } 
-        printf ("%s\n",pch);
+        // printf ("%s\n",pch);
         pch = strtok (NULL, ":");
     }
 }
@@ -199,13 +201,17 @@ int main(int argc, char *argv[])
     // keep resending after some milisecond.
     // use struct? as a class? garo huncha hola ra?
     int sendCompletionFlag = 1,recvCompletionFlag = 1, sendingCharAt=0;
-    while(sendCompletionFlag && recvCompletionFlag){
+    while(sendCompletionFlag || recvCompletionFlag){
         if(inputBuffer[sendingCharAt] != '\n'){
-            buildPacket(THIS_CLIENT, sendingCharAt, SEND, inputBuffer[sendingCharAt]);
-            transmitData(sockfd, packet);
+            if(lastSendingSignal == 54 || lastSendingSignal == ACK2 && lastSendingSignal != TERMINATE){
+                buildPacket(THIS_CLIENT, sendingCharAt, SEND, inputBuffer[sendingCharAt]);
+                transmitData(sockfd, packet);
+                lastSendingSignal = SEND;    
+            }
         }else{
             buildPacket(THIS_CLIENT, sendingCharAt, TERMINATE, inputBuffer[0]);
             sendCompletionFlag =0;
+            lastSendingSignal = TERMINATE;
         }
         if(read(sockfd,socketBuffer,10000)){
             printf("%s",socketBuffer );
@@ -224,6 +230,7 @@ int main(int argc, char *argv[])
                     }
                     if(currentPackage.ackSignals == ACK2){
                         sendingCharAt++;
+                        lastSendingSignal == ACK2;
                     }
                 }
                 else{
