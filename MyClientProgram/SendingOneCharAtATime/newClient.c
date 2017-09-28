@@ -137,10 +137,10 @@ void splitData(char* socketBuffer){
             serial++;
         } 
         if(serial == 3){
-            currentPackage.msg= atoi(pch);
+            currentPackage.msg = pch[0];
             serial++;
         } 
-        // printf ("%s\n",pch);
+        printf ("%s\n",pch);
         pch = strtok (NULL, ":");
     }
 }
@@ -150,7 +150,9 @@ int countSeperators(char* recievedPacket){
     while(recievedPacket[i] != '\n'){
         if(recievedPacket[i] == ':')
             count++;
+        i++;
     }
+    // printf("%d\n",count);
     return count;
 }
 int main(int argc, char *argv[])
@@ -206,7 +208,10 @@ int main(int argc, char *argv[])
             sendCompletionFlag =0;
         }
         if(read(sockfd,socketBuffer,10000)){
+            printf("%s",socketBuffer );
+            // int sepCount = countSeperators(socketBuffer);
             if(countSeperators(socketBuffer) == 3){
+                printf("Count correct for ^this packet");
                 splitData(socketBuffer);    
                 if(currentPackage.ackSignals == TERMINATE){
                     recvCompletionFlag = 0;
