@@ -18,7 +18,6 @@
 char packet[10];
 char number[4];
 
-int lastSendingSignal = 54;
 
 struct CurrentPackage
 {
@@ -76,7 +75,6 @@ void buildPacket(int clientId, int seqNum, int comSignal, char msg){
         intToString(seqNum);
         for(int j = strlen(number)-2; j>=0 ; j--){
             packet[i++] = number[j];
-
         }
 
         packet[i++] = ':';
@@ -86,6 +84,7 @@ void buildPacket(int clientId, int seqNum, int comSignal, char msg){
         packet[i++] = '\n';
         // fprintf(stderr,"%s", packet);
 }  
+
 
 
 void error(const char *msg)
@@ -101,22 +100,22 @@ void transmitData(int sockfd, char *buffer){
         
 }
 
-char messageToBeDisplayed[10001];
-int judge(struct MessageDetails judgePackage){
-    if(judgePackage.count1 == 3){
-        messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg1;
-        return TERMINATE;
-    }
-    if(judgePackage.count2 == 3){
-        messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg2;
-        return TERMINATE;
-    }
-    if(judgePackage.count2 == 3){
-        messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg3;
-        return TERMINATE;
-    }
-    return SEND_AGAIN;
-}
+char finalMessage[10001];
+// int judge(struct MessageDetails judgePackage){
+//     if(judgePackage.count1 == 3){
+//         messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg1;
+//         return TERMINATE;
+//     }
+//     if(judgePackage.count2 == 3){
+//         messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg2;
+//         return TERMINATE;
+//     }
+//     if(judgePackage.count2 == 3){
+//         messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg3;
+//         return TERMINATE;
+//     }
+//     return SEND_AGAIN;
+// }
 void splitData(char* socketBuffer){
     char * pch;
     char str[10];
@@ -157,6 +156,31 @@ int countSeperators(char* recievedPacket){
     // printf("%d\n",count);
     return count;
 }
+void initializeMessageDetails(){
+    for(int i = 0 ; i< 10001; i++){
+        recvdPackages[i].msg1 = '\0';
+        recvdPackages[i].msg2 = '\0';
+        recvdPackages[i].msg3 = '\0';
+        recvdPackages[i].count1 = 0;
+        recvdPackages[i].count2 = 0;
+        recvdPackages[i].count3 = 0;
+
+    }
+}
+int checkCount(int seqNum){
+    if((recvdPackages[seqNum].count1 > recvdPackages[seqNum].count2) && (recvdPackages[seqNum].count1 > recvdPackages[seqNum].count3)){
+        return 1;
+    }else if((recvdPackages[seqNum].count2 > recvdPackages[seqNum].count1) && (recvdPackages[seqNum].count2 > recvdPackages[seqNum].count3)){
+        return 2;
+    }else if((recvdPackages[seqNum].count3 > recvdPackages[seqNum].count2) && (recvdPackages[seqNum].count3 > recvdPackages[seqNum].count1)){
+        return 3;
+    }else{
+        return 9;
+    }
+
+
+}
+    
 int main(int argc, char *argv[])
 {
     int sockfd, portno, n;
@@ -165,7 +189,7 @@ int main(int argc, char *argv[])
 
     char inputBuffer[10001];
     char socketBuffer[10001];
-
+    initializeMessageDetails();
     if (argc < 3) {
        fprintf(stderr,"usage %s hostname port\n", argv[0]);
        exit(0);
@@ -200,72 +224,137 @@ int main(int argc, char *argv[])
     // dont send 6th character unless 1st is double acked
     // keep resending after some milisecond.
     // use struct? as a class? garo huncha hola ra?
-    int sendCompletionFlag = 1,recvCompletionFlag = 1, sendingCharAt=0;
+    int sendCompletionFlag = 1,recvCompletionFlag = 1, sendingCharAt= -1;
+
+    int lastSendingSignal = ACK2;
+
     while(sendCompletionFlag || recvCompletionFlag){
-        if(inputBuffer[sendingCharAt] != '\n'){
-            if(lastSendingSignal == 54 || lastSendingSignal == ACK2 && lastSendingSignal != TERMINATE){
+        if(lastSendingSignal == ACK2){
+            sendingCharAt++;
                 buildPacket(THIS_CLIENT, sendingCharAt, SEND, inputBuffer[sendingCharAt]);
                 transmitData(sockfd, packet);
-                lastSendingSignal = SEND;    
-            }
-        }else{
-            buildPacket(THIS_CLIENT, sendingCharAt, TERMINATE, inputBuffer[0]);
-            sendCompletionFlag =0;
-            lastSendingSignal = TERMINATE;
+            lastSendingSignal = SEND;
         }
         if(read(sockfd,socketBuffer,10000)){
-            printf("%s",socketBuffer );
-            // int sepCount = countSeperators(socketBuffer);
             if(countSeperators(socketBuffer) == 3){
-                printf("Count correct for ^this packet");
                 splitData(socketBuffer);    
-                if(currentPackage.ackSignals == TERMINATE){
-                    recvCompletionFlag = 0;
-                }
-                if(currentPackage.clientId == THIS_CLIENT){ //Handle replies recieved of packages sent, ie. if ack1 then send again.
-                    //send again if need be
-                    if(currentPackage.ackSignals == ACK1){
-                        buildPacket(THIS_CLIENT, sendingCharAt, SEND_AGAIN, inputBuffer[sendingCharAt]);
-                        transmitData(sockfd, packet);
-                    }
-                    if(currentPackage.ackSignals == ACK2){
-                        sendingCharAt++;
-                        lastSendingSignal == ACK2;
-                    }
-                }
-                else{
-                    recvdPackages[currentPackage.seqNum].clientId = currentPackage.clientId;
-                    recvdPackages[currentPackage.seqNum].seqNum = currentPackage.seqNum;
-                    recvdPackages[currentPackage.seqNum].ackSignals = currentPackage.ackSignals;
-                    if(recvdPackages[currentPackage.seqNum].msg1 = '\0'){
-                        recvdPackages[currentPackage.seqNum].msg1 = currentPackage.msg; 
-                        recvdPackages[currentPackage.seqNum].count1++;
-                    }else if(recvdPackages[currentPackage.seqNum].msg1 = currentPackage.msg){
-                        recvdPackages[currentPackage.seqNum].count1++;
-                    }else if(recvdPackages[currentPackage.seqNum].msg2 = '\0'){
-                        recvdPackages[currentPackage.seqNum].msg2 = currentPackage.msg; 
-                        recvdPackages[currentPackage.seqNum].count2++;
-                    }else if(recvdPackages[currentPackage.seqNum].msg2 = currentPackage.msg){
-                        recvdPackages[currentPackage.seqNum].count2++;
-                    }else if(recvdPackages[currentPackage.seqNum].msg3 = '\0'){
-                        recvdPackages[currentPackage.seqNum].msg3 = currentPackage.msg; 
-                        recvdPackages[currentPackage.seqNum].count3++;
-                    }else if(recvdPackages[currentPackage.seqNum].msg3 = currentPackage.msg){
-                        recvdPackages[currentPackage.seqNum].count3++;
-                    }
-                    if(judge(recvdPackages[currentPackage.seqNum])==TERMINATE){
-                        buildPacket(THIS_CLIENT, sendingCharAt, ACK2, inputBuffer[sendingCharAt]);
-                        transmitData(sockfd, packet);
-                    }else if(judge(recvdPackages[currentPackage.seqNum])== SEND_AGAIN){
-                        buildPacket(THIS_CLIENT, sendingCharAt, ACK1, inputBuffer[sendingCharAt]);
-                        transmitData(sockfd, packet);
-                    }
-                    //save package,
-                }
 
+                if(currentPackage.clientId == THIS_CLIENT && currentPackage.ackSignals == ACK1){
+                    buildPacket(THIS_CLIENT, sendingCharAt, SEND_AGAIN, inputBuffer[sendingCharAt]);
+                    transmitData(sockfd, packet);
+                }else if(currentPackage.clientId == THIS_CLIENT && currentPackage.ackSignals == ACK2){
+                    lastSendingSignal == ACK2;
+                }else{
+                    // uta bata ako data.
+                    if(currentPackage.ackSignals == SEND){
+                        // recvdPackages[currentPackage.seqNum].clientId = currentPackage.clientId;
+                        // recvdPackages[currentPackage.seqNum].seqNum = currentPackage.seqNum;
+                        // recvdPackages[currentPackage.seqNum].ackSignals = currentPackage.ackSignals;
+                        printf("char: %c  count: %d", recvdPackages[currentPackage.seqNum].msg1, recvdPackages[currentPackage.seqNum].count1 );
+                            recvdPackages[currentPackage.seqNum].msg1 = currentPackage.msg;
+                            recvdPackages[currentPackage.seqNum].count1 = 1;
+
+                        printf("char: %c  count: %d", recvdPackages[currentPackage.seqNum].msg1, recvdPackages[currentPackage.seqNum].count1 );
+                    }
+                    if(currentPackage.ackSignals == SEND_AGAIN){
+                            if(currentPackage.msg == recvdPackages[currentPackage.seqNum].msg1){
+                                recvdPackages[currentPackage.seqNum].count1 = recvdPackages[currentPackage.seqNum].count1 +1;
+                            }
+                            if(currentPackage.msg == recvdPackages[currentPackage.seqNum].msg2){
+
+                                recvdPackages[currentPackage.seqNum].count1 = recvdPackages[currentPackage.seqNum].count1 +1;
+                            }
+                            if(currentPackage.msg == recvdPackages[currentPackage.seqNum].msg1){
+                                recvdPackages[currentPackage.seqNum].count1 = recvdPackages[currentPackage.seqNum].count1 +1;
+                            }
+                            int kunCount = checkCount(currentPackage.seqNum);
+                            switch (kunCount){
+                                case 1: finalMessage[currentPackage.seqNum] = recvdPackages[currentPackage.seqNum].msg1;
+                                        buildPacket(currentPackage.clientId, currentPackage.seqNum, ACK2, currentPackage.msg);
+                                        transmitData(sockfd, packet);
+                                        break;
+                                case 2: finalMessage[currentPackage.seqNum] = recvdPackages[currentPackage.seqNum].msg2;
+                                        buildPacket(currentPackage.clientId, currentPackage.seqNum, ACK2, currentPackage.msg);
+                                        transmitData(sockfd, packet);
+                                        break;
+                                case 3: finalMessage[currentPackage.seqNum] = recvdPackages[currentPackage.seqNum].msg3;
+                                        buildPacket(currentPackage.clientId, currentPackage.seqNum, ACK2, currentPackage.msg);
+                                        transmitData(sockfd, packet);
+                                        break;
+                                default: buildPacket(currentPackage.clientId, currentPackage.seqNum, ACK1, currentPackage.msg);
+                                         transmitData(sockfd, packet);
+
+                            }
+                    }
+                }
             }
-        }    
+        }
     }
+    // while(sendCompletionFlag || recvCompletionFlag){
+    //     if(inputBuffer[sendingCharAt] != '\n'){
+    //         if(lastSendingSignal == 54 || lastSendingSignal == ACK2 && lastSendingSignal != TERMINATE){
+    //             buildPacket(THIS_CLIENT, sendingCharAt, SEND, inputBuffer[sendingCharAt]);
+    //             transmitData(sockfd, packet);
+    //             lastSendingSignal = SEND;    
+    //         }
+    //     }else{
+    //         buildPacket(THIS_CLIENT, sendingCharAt, TERMINATE, inputBuffer[0]);
+    //         sendCompletionFlag =0;
+    //         lastSendingSignal = TERMINATE;
+    //     }
+    //     if(read(sockfd,socketBuffer,10000)){
+            
+    //         // int sepCount = countSeperators(socketBuffer);
+    //         if(countSeperators(socketBuffer) == 3){
+    //             printf("Count correct for this packet %s",socketBuffer);
+    //             splitData(socketBuffer);    
+    //             if(currentPackage.ackSignals == TERMINATE){
+    //                 recvCompletionFlag = 0;
+    //             }
+    //             if(currentPackage.clientId == THIS_CLIENT){ //Handle replies recieved of packages sent, ie. if ack1 then send again.
+    //                 //send again if need be
+    //                 if(currentPackage.ackSignals == ACK1){
+    //                     buildPacket(THIS_CLIENT, sendingCharAt, SEND_AGAIN, inputBuffer[sendingCharAt]);
+    //                     transmitData(sockfd, packet);
+    //                 }
+    //                 if(currentPackage.ackSignals == ACK2){
+    //                     sendingCharAt++;
+    //                     lastSendingSignal == ACK2;
+    //                 }
+    //             }
+    //             else{
+    //                 recvdPackages[currentPackage.seqNum].clientId = currentPackage.clientId;
+    //                 recvdPackages[currentPackage.seqNum].seqNum = currentPackage.seqNum;
+    //                 recvdPackages[currentPackage.seqNum].ackSignals = currentPackage.ackSignals;
+    //                 if(recvdPackages[currentPackage.seqNum].msg1 = '\0'){
+    //                     recvdPackages[currentPackage.seqNum].msg1 = currentPackage.msg; 
+    //                     recvdPackages[currentPackage.seqNum].count1++;
+    //                 }else if(recvdPackages[currentPackage.seqNum].msg1 = currentPackage.msg){
+    //                     recvdPackages[currentPackage.seqNum].count1++;
+    //                 }else if(recvdPackages[currentPackage.seqNum].msg2 = '\0'){
+    //                     recvdPackages[currentPackage.seqNum].msg2 = currentPackage.msg; 
+    //                     recvdPackages[currentPackage.seqNum].count2++;
+    //                 }else if(recvdPackages[currentPackage.seqNum].msg2 = currentPackage.msg){
+    //                     recvdPackages[currentPackage.seqNum].count2++;
+    //                 }else if(recvdPackages[currentPackage.seqNum].msg3 = '\0'){
+    //                     recvdPackages[currentPackage.seqNum].msg3 = currentPackage.msg; 
+    //                     recvdPackages[currentPackage.seqNum].count3++;
+    //                 }else if(recvdPackages[currentPackage.seqNum].msg3 = currentPackage.msg){
+    //                     recvdPackages[currentPackage.seqNum].count3++;
+    //                 }
+    //                 if(judge(recvdPackages[currentPackage.seqNum])==TERMINATE){
+    //                     buildPacket(THIS_CLIENT, sendingCharAt, ACK2, inputBuffer[sendingCharAt]);
+    //                     transmitData(sockfd, packet);
+    //                 }else if(judge(recvdPackages[currentPackage.seqNum])== SEND_AGAIN){
+    //                     buildPacket(THIS_CLIENT, sendingCharAt, ACK1, inputBuffer[sendingCharAt]);
+    //                     transmitData(sockfd, packet);
+    //                 }
+    //                 //save package,
+    //             }
+
+    //         }
+    //     }    
+    // }
       
     // while(1){
     //     bzero(buffer,10001);
