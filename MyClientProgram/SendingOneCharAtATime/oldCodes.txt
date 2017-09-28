@@ -1,0 +1,35 @@
+char* (int clientId, int seqNum, int comSignal, char msg){
+        char packet[10];
+        bzero(packet, 10);
+        int i=0;
+        packet[i++] = clientId;
+        packet[i++] = ':';
+        while(seqNum%10){
+            int n = seqNum % 10;
+            packet[i++] = 48+n;
+            seqNum = seqNum/10;
+        }
+        packet[i++] = ':';
+        packet[i++] = comSignal +48;
+        packet[i++] = ':';
+        packet[i++] = msg;
+        packet[i++] = '\n';
+}  
+
+
+
+// int judge(struct MessageDetails judgePackage){
+//     if(judgePackage.count1 == 3){
+//         messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg1;
+//         return TERMINATE;
+//     }
+//     if(judgePackage.count2 == 3){
+//         messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg2;
+//         return TERMINATE;
+//     }
+//     if(judgePackage.count2 == 3){
+//         messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg3;
+//         return TERMINATE;
+//     }
+//     return SEND_AGAIN;
+// }

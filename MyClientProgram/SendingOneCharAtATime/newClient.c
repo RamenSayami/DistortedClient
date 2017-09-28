@@ -14,7 +14,7 @@
 #define ACK2 52         //signal when reciever confirms the packet data to be correct
 #define TERMINATE 53    //signal to terminate the communication from senders's end if all packets are gone through.
 
-#define THIS_CLIENT 3 // Change number for different instances please! 3 - 8 will be better
+#define THIS_CLIENT 8 // Change number for different instances please! 3 - 8 will be better
 char packet[10];
 char number[4];
 
@@ -101,21 +101,7 @@ void transmitData(int sockfd, char *buffer){
 }
 
 char finalMessage[10001];
-// int judge(struct MessageDetails judgePackage){
-//     if(judgePackage.count1 == 3){
-//         messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg1;
-//         return TERMINATE;
-//     }
-//     if(judgePackage.count2 == 3){
-//         messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg2;
-//         return TERMINATE;
-//     }
-//     if(judgePackage.count2 == 3){
-//         messageToBeDisplayed[judgePackage.seqNum] = judgePackage.msg3;
-//         return TERMINATE;
-//     }
-//     return SEND_AGAIN;
-// }
+
 void splitData(char* socketBuffer){
     char * pch;
     char str[10];
@@ -145,7 +131,9 @@ void splitData(char* socketBuffer){
         pch = strtok (NULL, ":");
     }
 }
-int countSeperators(char* recievedPacket){
+int sepCounter;
+
+void countSeperators(char* recievedPacket){
     int i=0;
     int count = 0;
     while(recievedPacket[i] != '\n'){
@@ -153,8 +141,8 @@ int countSeperators(char* recievedPacket){
             count++;
         i++;
     }
-    // printf("%d\n",count);
-    return count;
+    // printf("SepCounter: %d\n",count);
+    sepCounter = count;
 }
 void initializeMessageDetails(){
     for(int i = 0 ; i< 10001; i++){
@@ -177,25 +165,22 @@ int checkCount(int seqNum){
     }else{
         return 9;
     }
-
-
 }
     
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]){
     int sockfd, portno, n;
     struct sockaddr_in serv_addr;
     struct hostent *server;
 
     char inputBuffer[10001];
     char socketBuffer[10001];
-    initializeMessageDetails();
+    // initializeMessageDetails();
     if (argc < 3) {
        fprintf(stderr,"usage %s hostname port\n", argv[0]);
        exit(0);
     }
-    portno = atoi(argv[2]);
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+         portno = atoi(argv[2]);
+         sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) 
         error("ERROR opening socket");
     server = gethostbyname(argv[1]);
@@ -214,16 +199,12 @@ int main(int argc, char *argv[])
     printf("Please enter the message: ");
     bzero(inputBuffer,10001);
     for (int i=0; i < 10000; i++){
-	inputBuffer[i] = 'a';
+	   inputBuffer[i] = 'a';
     }
     fgets(inputBuffer,10000,stdin);
     int i =0;
     bzero(recvdPackages, sizeof(struct MessageDetails)*10001);
-    // Sliding window apply garnu parcha..
-    // window size 5 jati..
-    // dont send 6th character unless 1st is double acked
-    // keep resending after some milisecond.
-    // use struct? as a class? garo huncha hola ra?
+   
     int sendCompletionFlag = 1,recvCompletionFlag = 1, sendingCharAt= -1;
 
     int lastSendingSignal = ACK2;
@@ -231,13 +212,26 @@ int main(int argc, char *argv[])
     while(sendCompletionFlag || recvCompletionFlag){
         if(lastSendingSignal == ACK2){
             sendingCharAt++;
+            if(inputBuffer[sendingCharAt] == '\n'){
+                buildPacket(THIS_CLIENT, sendingCharAt-1, TERMINATE, inputBuffer[sendingCharAt-1]);
+                transmitData(sockfd, packet);
+                sendCompletionFlag = 0;
+            }else{
                 buildPacket(THIS_CLIENT, sendingCharAt, SEND, inputBuffer[sendingCharAt]);
                 transmitData(sockfd, packet);
-            lastSendingSignal = SEND;
+                lastSendingSignal = SEND;
+            }
+                
         }
         if(read(sockfd,socketBuffer,10000)){
-            if(countSeperators(socketBuffer) == 3){
+            printf("%s", socketBuffer);
+            countSeperators(socketBuffer);    
+            printf("SeparatorCount: %d", sepCounter);
+
+            if(sepCounter == 3){
+                printf("SeparatorCount: done %d", sepCounter);
                 splitData(socketBuffer);    
+                printf("Split data: done");
 
                 if(currentPackage.clientId == THIS_CLIENT && currentPackage.ackSignals == ACK1){
                     buildPacket(THIS_CLIENT, sendingCharAt, SEND_AGAIN, inputBuffer[sendingCharAt]);
@@ -247,16 +241,14 @@ int main(int argc, char *argv[])
                 }else{
                     // uta bata ako data.
                     if(currentPackage.ackSignals == SEND){
-                        // recvdPackages[currentPackage.seqNum].clientId = currentPackage.clientId;
-                        // recvdPackages[currentPackage.seqNum].seqNum = currentPackage.seqNum;
-                        // recvdPackages[currentPackage.seqNum].ackSignals = currentPackage.ackSignals;
                         printf("char: %c  count: %d", recvdPackages[currentPackage.seqNum].msg1, recvdPackages[currentPackage.seqNum].count1 );
                             recvdPackages[currentPackage.seqNum].msg1 = currentPackage.msg;
                             recvdPackages[currentPackage.seqNum].count1 = 1;
 
                         printf("char: %c  count: %d", recvdPackages[currentPackage.seqNum].msg1, recvdPackages[currentPackage.seqNum].count1 );
-                    }
-                    if(currentPackage.ackSignals == SEND_AGAIN){
+                    }else if(currentPackage.ackSignals == TERMINATE){
+                        recvCompletionFlag = 0 ;
+                    }else if(currentPackage.ackSignals == SEND_AGAIN){
                             if(currentPackage.msg == recvdPackages[currentPackage.seqNum].msg1){
                                 recvdPackages[currentPackage.seqNum].count1 = recvdPackages[currentPackage.seqNum].count1 +1;
                             }
@@ -290,80 +282,7 @@ int main(int argc, char *argv[])
             }
         }
     }
-    // while(sendCompletionFlag || recvCompletionFlag){
-    //     if(inputBuffer[sendingCharAt] != '\n'){
-    //         if(lastSendingSignal == 54 || lastSendingSignal == ACK2 && lastSendingSignal != TERMINATE){
-    //             buildPacket(THIS_CLIENT, sendingCharAt, SEND, inputBuffer[sendingCharAt]);
-    //             transmitData(sockfd, packet);
-    //             lastSendingSignal = SEND;    
-    //         }
-    //     }else{
-    //         buildPacket(THIS_CLIENT, sendingCharAt, TERMINATE, inputBuffer[0]);
-    //         sendCompletionFlag =0;
-    //         lastSendingSignal = TERMINATE;
-    //     }
-    //     if(read(sockfd,socketBuffer,10000)){
-            
-    //         // int sepCount = countSeperators(socketBuffer);
-    //         if(countSeperators(socketBuffer) == 3){
-    //             printf("Count correct for this packet %s",socketBuffer);
-    //             splitData(socketBuffer);    
-    //             if(currentPackage.ackSignals == TERMINATE){
-    //                 recvCompletionFlag = 0;
-    //             }
-    //             if(currentPackage.clientId == THIS_CLIENT){ //Handle replies recieved of packages sent, ie. if ack1 then send again.
-    //                 //send again if need be
-    //                 if(currentPackage.ackSignals == ACK1){
-    //                     buildPacket(THIS_CLIENT, sendingCharAt, SEND_AGAIN, inputBuffer[sendingCharAt]);
-    //                     transmitData(sockfd, packet);
-    //                 }
-    //                 if(currentPackage.ackSignals == ACK2){
-    //                     sendingCharAt++;
-    //                     lastSendingSignal == ACK2;
-    //                 }
-    //             }
-    //             else{
-    //                 recvdPackages[currentPackage.seqNum].clientId = currentPackage.clientId;
-    //                 recvdPackages[currentPackage.seqNum].seqNum = currentPackage.seqNum;
-    //                 recvdPackages[currentPackage.seqNum].ackSignals = currentPackage.ackSignals;
-    //                 if(recvdPackages[currentPackage.seqNum].msg1 = '\0'){
-    //                     recvdPackages[currentPackage.seqNum].msg1 = currentPackage.msg; 
-    //                     recvdPackages[currentPackage.seqNum].count1++;
-    //                 }else if(recvdPackages[currentPackage.seqNum].msg1 = currentPackage.msg){
-    //                     recvdPackages[currentPackage.seqNum].count1++;
-    //                 }else if(recvdPackages[currentPackage.seqNum].msg2 = '\0'){
-    //                     recvdPackages[currentPackage.seqNum].msg2 = currentPackage.msg; 
-    //                     recvdPackages[currentPackage.seqNum].count2++;
-    //                 }else if(recvdPackages[currentPackage.seqNum].msg2 = currentPackage.msg){
-    //                     recvdPackages[currentPackage.seqNum].count2++;
-    //                 }else if(recvdPackages[currentPackage.seqNum].msg3 = '\0'){
-    //                     recvdPackages[currentPackage.seqNum].msg3 = currentPackage.msg; 
-    //                     recvdPackages[currentPackage.seqNum].count3++;
-    //                 }else if(recvdPackages[currentPackage.seqNum].msg3 = currentPackage.msg){
-    //                     recvdPackages[currentPackage.seqNum].count3++;
-    //                 }
-    //                 if(judge(recvdPackages[currentPackage.seqNum])==TERMINATE){
-    //                     buildPacket(THIS_CLIENT, sendingCharAt, ACK2, inputBuffer[sendingCharAt]);
-    //                     transmitData(sockfd, packet);
-    //                 }else if(judge(recvdPackages[currentPackage.seqNum])== SEND_AGAIN){
-    //                     buildPacket(THIS_CLIENT, sendingCharAt, ACK1, inputBuffer[sendingCharAt]);
-    //                     transmitData(sockfd, packet);
-    //                 }
-    //                 //save package,
-    //             }
 
-    //         }
-    //     }    
-    // }
-      
-    // while(1){
-    //     bzero(buffer,10001);
-    //     n = read(sockfd,buffer,10000);
-    //     if (n < 0) 
-    //         error("ERROR reading from socket");
-    //     printf("%s",buffer);    
-    // }
-    
     close(sockfd);
     return 0;
 }
